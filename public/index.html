@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoSabotage</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- ═══ HOME ═══ -->
+  <div id="home-screen" class="screen active">
+    <div class="home-card">
+      <h1>GeoSabotage</h1>
+      <p class="subtitle">Hide. Seek. Sabotage.</p>
+      <input id="username-input" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
+      <div class="home-actions">
+        <div class="action-group">
+          <h3>Create a Room</h3>
+          <label>Rounds <input id="rounds-input" type="number" value="5" min="1" max="99"></label>
+          <label>Round length (s) <input id="round-length-input" type="number" value="60" min="20" max="180"></label>
+          <button id="create-btn" class="btn primary">Create Room</button>
+        </div>
+        <div class="divider">OR</div>
+        <div class="action-group">
+          <h3>Join a Room</h3>
+          <input id="room-code-input" type="text" placeholder="Room code" maxlength="6" autocomplete="off">
+          <button id="join-btn" class="btn secondary">Join Room</button>
+        </div>
+      </div>
+      <div id="home-error" class="error-msg"></div>
+    </div>
+  </div>
+
+  <!-- ═══ LOBBY ═══ -->
+  <div id="lobby-screen" class="screen">
+    <div class="lobby-card">
+      <h2>Room: <span id="lobby-code"></span></h2>
+      <div id="lobby-players" class="player-list"></div>
+      <div id="lobby-settings" class="lobby-settings" style="display:none">
+        <label>Rounds <input id="lobby-rounds" type="number" value="5" min="1" max="99"></label>
+        <label>Round length (s) <input id="lobby-round-length" type="number" value="60" min="20" max="180"></label>
+      </div>
+      <button id="start-game-btn" class="btn primary" style="display:none">Start Game</button>
+      <p id="lobby-wait" class="wait-text">Waiting for host to start…</p>
+    </div>
+  </div>
+
+  <!-- ═══ GAME ═══ -->
+  <div id="game-screen" class="screen">
+    <!-- Top bar -->
+    <div id="game-bar">
+      <span id="bar-round"></span>
+      <span id="bar-role"></span>
+      <span id="bar-timer"></span>
+      <span id="bar-score"></span>
+      <span id="bar-heat" style="display:none"></span>
+    </div>
+
+    <!-- Hiding phase: hider picks a spot -->
+    <div id="phase-hiding" class="phase" style="display:none">
+      <div id="hiding-map" class="map-full"></div>
+      <div id="hiding-controls" class="phase-controls">
+        <p id="hiding-status">Click anywhere on the map to pick a hiding spot</p>
+        <button id="validate-btn" class="btn primary" disabled>Validate Spot</button>
+        <button id="lockin-btn" class="btn accent" style="display:none">Lock In</button>
+        <div id="pano-preview" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Hiding phase: seeker waits -->
+    <div id="phase-waiting" class="phase" style="display:none">
+      <div class="waiting-anim">
+        <div class="spinner"></div>
+        <p id="waiting-text">The hider is choosing a spot…</p>
+      </div>
+    </div>
+
+    <!-- Betting phase -->
+    <div id="phase-betting" class="phase" style="display:none">
+      <div class="betting-card">
+        <h2>Place Your Bet</h2>
+        <p id="betting-temp" class="clue-text"></p>
+        <div class="strategy-pick">
+          <button class="btn strategy-btn active" data-strategy="safe">Safe</button>
+          <button class="btn strategy-btn" data-strategy="bold">Bold</button>
+        </div>
+        <div id="bold-opts" style="display:none">
+          <label>Wager <input id="wager-input" type="range" min="0" max="5000" step="100" value="0"><span id="wager-val">0</span></label>
+          <label>Confidence Tier
+            <select id="tier-select">
+              <option value="1">Tier 1 – within 500 km (×2.0)</option>
+              <option value="2">Tier 2 – within 1000 km (×1.7)</option>
+              <option value="3">Tier 3 – within 1500 km (×1.5)</option>
+              <option value="4">Tier 4 – within 1700 km (×1.3)</option>
+              <option value="5" selected>Tier 5 – within 1900 km (×1.2)</option>
+            </select>
+          </label>
+        </div>
+        <button id="submit-bet-btn" class="btn primary">Lock In Bet</button>
+        <p id="bet-progress" class="wait-text"></p>
+      </div>
+    </div>
+
+    <!-- Betting phase: hider waits -->
+    <div id="phase-betting-wait" class="phase" style="display:none">
+      <div class="waiting-anim">
+        <div class="spinner"></div>
+        <p>Seekers are placing bets…</p>
+        <p id="bet-progress-hider" class="wait-text"></p>
+      </div>
+    </div>
+
+    <!-- Guessing phase -->
+    <div id="phase-guessing" class="phase" style="display:none">
+      <div id="guess-layout">
+        <div id="pano-container"></div>
+        <div id="guess-map-container">
+          <div id="guess-map"></div>
+          <button id="submit-guess-btn" class="btn accent" disabled>Submit Guess</button>
+        </div>
+      </div>
+      <!-- Hint bar (seekers) -->
+      <div id="hint-bar" style="display:none">
+        <button class="hint-btn" data-hint="continent">Continent (−1500)</button>
+        <button class="hint-btn" data-hint="country">Country (−2500)</button>
+        <button class="hint-btn" data-hint="region">Region (−4500)</button>
+      </div>
+      <div id="hints-display"></div>
+    </div>
+
+    <!-- Sabotage panel (hider & seekers during guessing) -->
+    <div id="sabotage-panel" style="display:none">
+      <h3>Sabotage</h3>
+      <div id="sabotage-target-pick">
+        <label>Target: <select id="sabotage-target"></select></label>
+      </div>
+      <button class="sab-btn" data-action="ink" title="Ink splatter on target's view (1500 pts)">🖤 Ink</button>
+      <button class="sab-btn" data-action="smoke" title="Smoke screen on target (2000 pts)">💨 Smoke</button>
+      <button class="sab-btn" data-action="magnetize" title="Offset target's map clicks (1800 pts)">🧲 Magnetize</button>
+      <button class="sab-btn" data-action="cleanse" title="Remove sabotage effects on yourself (free)">✨ Cleanse</button>
+    </div>
+
+    <!-- Sabotage overlay -->
+    <div id="sabotage-overlay" style="display:none"></div>
+    <div id="sabotage-toast" style="display:none"></div>
+  </div>
+
+  <!-- ═══ RESULTS ═══ -->
+  <div id="results-screen" class="screen">
+    <div class="results-card">
+      <h2>Round Results</h2>
+      <p id="results-location"></p>
+      <div id="results-map" class="results-map"></div>
+      <table id="results-table">
+        <thead><tr><th>Player</th><th>Role</th><th>Distance</th><th>Strategy</th><th>Points</th></tr></thead>
+        <tbody id="results-body"></tbody>
+      </table>
+      <p class="wait-text">Next round starting soon…</p>
+    </div>
+  </div>
+
+  <!-- ═══ GAME OVER ═══ -->
+  <div id="gameover-screen" class="screen">
+    <div class="gameover-card">
+      <h2>Game Over</h2>
+      <ol id="final-standings"></ol>
+      <button id="back-home-btn" class="btn primary">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- ═══ CHAT (floating) ═══ -->
+  <div id="chat-widget" style="display:none">
+    <div id="chat-toggle">💬</div>
+    <div id="chat-panel" style="display:none">
+      <div id="chat-messages"></div>
+      <div id="chat-input-row">
+        <input id="chat-input" type="text" placeholder="Chat…" maxlength="300">
+        <button id="chat-send" class="btn small">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/mapillary-js@4.1.2/dist/mapillary.js"></script>
+  <script src="/game.js"></script>
+</body>
+</html>
