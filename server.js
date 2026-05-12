@@ -502,9 +502,10 @@ io.on("connection", (socket) => {
 
     if (room.activeRound.hintData) { deliver(room.activeRound.hintData); return; }
     buildHintData(room.activeRound.location.lat, room.activeRound.location.lng).then((data) => {
+      if (!room.activeRound) return;
       room.activeRound.hintData = data;
       deliver(data);
-    });
+    }).catch(() => {});
   });
 
   socket.on("usePowerup", ({ code, action, targetId }) => {
