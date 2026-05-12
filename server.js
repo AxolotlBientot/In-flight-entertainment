@@ -523,7 +523,6 @@ io.on("connection", (socket) => {
 
     const cost = sabotageCost(action);
     if (cost === 0) { socket.emit("errorMsg", "Unknown sabotage action."); return; }
-    if (cost === 0) { socket.emit("errorMsg", "Unknown sabotage action."); return; }
     if (player.score < cost) { socket.emit("errorMsg", `Not enough points (need ${cost}).`); return; }
     player.score -= cost;
     broadcastLobby(room.code);
