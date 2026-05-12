@@ -4,6 +4,12 @@
 
 const socket = io();
 
+function esc(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
 // ── State ──────────────────────────────────────────────────────────────────
 const S = {
   roomCode: null,
@@ -156,7 +162,7 @@ function renderLobby() {
   const list = $("lobby-players");
   list.innerHTML = S.players.map((p) =>
     `<div class="player-item">
-      <span>${p.username} ${p.isHost ? '<span class="host-badge">HOST</span>' : ""}</span>
+      <span>${esc(p.username)} ${p.isHost ? '<span class="host-badge">HOST</span>' : ""}</span>
       <span class="score">${p.score}</span>
     </div>`
   ).join("");
@@ -253,7 +259,7 @@ function populateSabotageTargets() {
   sel.innerHTML = '<option value="">Everyone</option>';
   S.players.forEach((p) => {
     if (p.id === S.myId) return;
-    sel.innerHTML += `<option value="${p.id}">${p.username}</option>`;
+    sel.innerHTML += `<option value="${esc(p.id)}">${esc(p.username)}</option>`;
   });
 }
 
@@ -480,7 +486,7 @@ socket.on("timerUpdate", (t) => {
 
 // ── Hints ─────────────────────────────────────────────────────────────────
 socket.on("hintGranted", ({ hint, value, cost }) => {
-  $("hints-display").innerHTML += `<span class="hint-pill">${hint}: ${value} (−${cost})</span>`;
+  $("hints-display").innerHTML += `<span class="hint-pill">${esc(hint)}: ${esc(value)} (−${cost})</span>`;
 });
 
 socket.on("hintError", ({ message }) => {
@@ -541,13 +547,13 @@ socket.on("roundResults", ({ location, hiderName, imageId, results }) => {
     if (r.won === true) pointsText += " ✓";
     if (r.won === false) pointsText += " ✗";
 
-    tr.innerHTML = `<td>${r.username}${r.winner ? " 👑" : ""}</td><td>${r.role}</td><td>${distText}</td><td>${stratText}</td><td>${pointsText}</td>`;
+    tr.innerHTML = `<td>${esc(r.username)}${r.winner ? " 👑" : ""}</td><td>${esc(r.role)}</td><td>${distText}</td><td>${stratText}</td><td>${pointsText}</td>`;
     tbody.appendChild(tr);
 
     if (r.guess && r.guess.lat !== null) {
       L.marker([r.guess.lat, r.guess.lng], {
         icon: L.divIcon({ className: "", html: `<div style="background:#00b4d8;width:10px;height:10px;border-radius:50%;border:2px solid #fff;"></div>` })
-      }).addTo(resultsMap).bindPopup(r.username);
+      }).addTo(resultsMap).bindPopup(esc(r.username));
       L.polyline([[location.lat, location.lng], [r.guess.lat, r.guess.lng]], {
         color: "#00b4d866", dashArray: "6 4"
       }).addTo(resultsMap);
@@ -564,14 +570,14 @@ socket.on("gameOver", (players) => {
   showScreen("gameover");
   const ol = $("final-standings");
   ol.innerHTML = players.map((p) =>
-    `<li><span>${p.username}</span><span style="color:#00b4d8">${p.score}</span></li>`
+    `<li><span>${esc(p.username)}</span><span style="color:#00b4d8">${p.score}</span></li>`
   ).join("");
 });
 
 // ── Chat ──────────────────────────────────────────────────────────────────
 socket.on("chatMessage", ({ sender, message }) => {
   const div = $("chat-messages");
-  div.innerHTML += `<div class="chat-msg"><span class="sender">${sender}:</span> ${message}</div>`;
+  div.innerHTML += `<div class="chat-msg"><span class="sender">${esc(sender)}:</span> ${esc(message)}</div>`;
   div.scrollTop = div.scrollHeight;
 });
 
