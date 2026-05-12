@@ -11,8 +11,8 @@ app.use(express.static("public"));
 let fetch;
 try { fetch = global.fetch ?? require("node-fetch"); } catch { fetch = global.fetch; }
 
-const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "fcafa296f1f98056fedd594cb005cbad";
-const MAPILLARY_ACCESS_TOKEN = process.env.MAPILLARY_ACCESS_TOKEN || "MLY|26578602881834697|9956a52a2fb9a16752a6280ca7320a80";
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "";
+const MAPILLARY_ACCESS_TOKEN = process.env.MAPILLARY_ACCESS_TOKEN || "";
 
 const ROUND_RESULT_DELAY_MS = 6000;
 const DEFAULT_ROUND_LENGTH  = 60;
